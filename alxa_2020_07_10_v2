@@ -66,6 +66,14 @@ const LaunchRequestHandler = {
         /* 今回の日にちを保存 */
         let today1 = today.toString();
         
+        let result = "";
+
+        if(dayDiff == 0){
+        result = "今日は調子良いですね。";
+        }else{
+        result = `${dayDiff}日ぶりですね。`;
+        }
+        
         
         s3Attributes["前回ログイン日"]["day"] = today1;
 
@@ -75,7 +83,7 @@ const LaunchRequestHandler = {
         
         
         // 本文
-        const speakOutput = `${dayDiff}日ぶりです。1セット目は${menu}を${s3Attributes[menu].num_past}${s3Attributes[menu].count2_past}以上目指しましょう。
+        const speakOutput = `${result}1セット目は${menu}を${s3Attributes[menu].num_past}${s3Attributes[menu].count2_past}以上目指しましょう。
                             終わったらギブと言ってください
                             <audio src="https://alexa-training1.s3-ap-northeast-1.amazonaws.com/music/2.wav" />`;
         return handlerInput.responseBuilder
@@ -216,5 +224,3 @@ exports.handler = Alexa.SkillBuilders.custom()
          new persistenceAdapter.S3PersistenceAdapter({bucketName:"alexa-training1"})
      )
     .lambda();
-
-    test

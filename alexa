@@ -43,7 +43,7 @@ const LaunchRequestHandler = {
                 "count2_past":"秒"
             },
             "前回ログイン日":{
-                "day":"Sun May 01 2020 00:00:00 GMT+0900 (日本標準時)"
+                "day":"Sun March 05 2020 00:00:00 GMT+0900 (日本標準時)"
             }
         };
         
@@ -51,9 +51,7 @@ const LaunchRequestHandler = {
         const attributesManager = handlerInput.attributesManager;
         let s3Attributes = await attributesManager.getPersistentAttributes() ;
         if(s3Attributes[menu] ){
-            console.log("trueの場合");
         }else{
-            console.log("falseの場合");
             s3Attributes = format;
         }
         
@@ -106,7 +104,7 @@ const ResultIntentHandler = {
         let menu = attributes.menu;
         let count = ["回","秒"];
         let count2 ="";
-        let num2 = num+s3Attributes["前回ログイン日"]["day"];
+        let record = (parseInt(num,10) + parseInt(s3Attributes[menu].num_past,10))/2;
     
 
         // 単位の設定
@@ -129,7 +127,7 @@ const ResultIntentHandler = {
                                 休憩したら2セット目に入りましょう
                                 <audio src="https://alexa-training1.s3-ap-northeast-1.amazonaws.com/music/2.wav" />`;
         // アトリビュートを保存するハンドラー
-        s3Attributes[menu].num_past = num2;
+        s3Attributes[menu].num_past = record;
         attributesManager.setPersistentAttributes(s3Attributes);
         await attributesManager.savePersistentAttributes();
         return handlerInput.responseBuilder
@@ -215,6 +213,6 @@ exports.handler = Alexa.SkillBuilders.custom()
         ErrorHandler,
     )
      .withPersistenceAdapter(
-         new persistenceAdapter.S3PersistenceAdapter({bucketName:"lexa-training1"})
+         new persistenceAdapter.S3PersistenceAdapter({bucketName:"alexa-training1"})
      )
     .lambda();

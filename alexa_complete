@@ -1,0 +1,215 @@
+
+const Alexa = require('ask-sdk-core');
+const persistenceAdapter = require('ask-sdk-s3-persistence-adapter');
+
+const LaunchRequestHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
+    },
+    
+    async handle(handlerInput) {
+        
+        // メニューの選択
+        var array = ["スクワット","腹筋","腕立て","背筋","逆立ち","体幹"];
+        var menu = array[Math.floor(Math.random() * array.length)];
+        
+        // セッションの設定
+        const attributes = handlerInput.attributesManager.getSessionAttributes();
+        attributes.menu = menu;
+        handlerInput.attributesManager.setSessionAttributes(attributes);
+        
+        let format = {
+            "スクワット":{
+                "num_past":0,
+                "count2_past":"回"
+            },
+            "腹筋":{
+                "num_past":0,
+                "count2_past":"回"
+            },
+            "腕立て":{
+                "num_past":0,
+                "count2_past":"回"
+            },
+            "背筋":{
+                "num_past":0,
+                "count2_past":"回"
+            },
+            "逆立ち":{
+                "num_past":0,
+                "count2_past":"秒"
+            },
+            "体幹":{
+                "num_past":0,
+                "count2_past":"秒"
+            }
+        };
+        // アトリビュートを読み込むハンドラー
+        const attributesManager = handlerInput.attributesManager;
+        let s3Attributes = await attributesManager.getPersistentAttributes() ;
+        if(s3Attributes[menu] ){
+            console.log("trueの場合");
+        }else{
+            console.log("falseの場合");
+            s3Attributes = format;
+        }
+        
+        // アトリビュートを保存するハンドラー
+        attributesManager.setPersistentAttributes(s3Attributes);
+        await attributesManager.savePersistentAttributes();
+        
+        
+        // 本文
+        const speakOutput = `1セット目は${menu}をしましょう。
+                            前回の記録${s3Attributes[menu].num_past}${s3Attributes[menu].count2_past}以上を目指しましょう。
+                            終わったらギブと言ってください
+                            <audio src="https://alexa-training1.s3-ap-northeast-1.amazonaws.com/music/2.wav" />`;
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const ResultIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'ResultIntent';
+    },
+    async handle(handlerInput) {
+        
+        // セッションの設定
+        const attributes = handlerInput.attributesManager.getSessionAttributes();
+
+        // アトリビュートを読み込むハンドラー
+        const attributesManager = handlerInput.attributesManager;
+        const s3Attributes = await attributesManager.getPersistentAttributes();
+        
+        // 変数の設定
+        const slots = handlerInput.requestEnvelope.request.intent.slots;
+        let num = slots.num.value ||undefined;
+        let menu = attributes.menu;
+        let count = ["回","秒"];
+        let count2 ="";
+        
+        // 単位の設定
+       if(menu === "スクワット"||menu === "腹筋"||menu === "腕立て"||menu === "背筋"){
+            count2 = count[0];
+            }else{
+            count2 = count[1];
+            }
+        
+        // 本文
+        if(num === undefined){
+            const speechOutput = `${menu}を何${count2}しましたか？`;
+            const reprompt = `${menu}を何${count2}しましたか？`;
+            return handlerInput.responseBuilder
+                .speak(speechOutput)
+                .reprompt(reprompt)
+                .getResponse();
+        }
+        const speakOutput = `${menu}を${num}${count2}ですね。
+                                休憩したら2セット目に入りましょう
+                                <audio src="https://alexa-training1.s3-ap-northeast-1.amazonaws.com/music/2.wav" />`;
+        // アトリビュートを保存するハンドラー
+        s3Attributes[menu].num_past = num;
+        attributesManager.setPersistentAttributes(s3Attributes);
+        await attributesManager.savePersistentAttributes();
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const HelpIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.HelpIntent';
+    },
+    handle(handlerInput) {
+        const speakOutput = 'お困りですか';
+
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const CancelAndStopIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.CancelIntent'
+                || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.StopIntent');
+    },
+    handle(handlerInput) {
+        const speakOutput = 'また明日';
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .getResponse();
+    }
+};
+const SessionEndedRequestHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'SessionEndedRequest';
+    },
+    handle(handlerInput) {
+        // Any cleanup logic goes here.
+        return handlerInput.responseBuilder.getResponse();
+    }
+};
+
+// The intent reflector is used for interaction model testing and debugging.
+// It will simply repeat the intent the user said. You can create custom handlers
+// for your intents by defining them above, then also adding them to the request
+// handler chain below.
+const IntentReflectorHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest';
+    },
+    handle(handlerInput) {
+        const intentName = Alexa.getIntentName(handlerInput.requestEnvelope);
+        const speakOutput = `${intentName}は見つかりませんでした`;
+
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            //.reprompt('add a reprompt if you want to keep the session open for the user to respond')
+            .getResponse();
+    }
+};
+
+// Generic error handling to capture any syntax or routing errors. If you receive an error
+// stating the request handler chain is not found, you have not implemented a handler for
+// the intent being invoked or included it in the skill builder below.
+const ErrorHandler = {
+    canHandle() {
+        return true;
+    },
+    handle(handlerInput, error) {
+        console.log(`~~~~ Error handled: ${error.stack}`);
+        const speakOutput = `Sorry, I had trouble doing what you asked. Please try again.`;
+
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+
+// The SkillBuilder acts as the entry point for your skill, routing all request and response
+// payloads to the handlers above. Make sure any new handlers or interceptors you've
+// defined are included below. The order matters - they're processed top to bottom.
+exports.handler = Alexa.SkillBuilders.custom()
+    .addRequestHandlers(
+        LaunchRequestHandler,
+        ResultIntentHandler,
+        HelpIntentHandler,
+        CancelAndStopIntentHandler,
+        SessionEndedRequestHandler,
+        IntentReflectorHandler, // make sure IntentReflectorHandler is last so it doesn't override your custom intent handlers
+    )
+    .addErrorHandlers(
+        ErrorHandler,
+    )
+     .withPersistenceAdapter(
+         new persistenceAdapter.S3PersistenceAdapter({bucketName:"alexa-training1"})
+     )
+    .lambda();

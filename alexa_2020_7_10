@@ -225,4 +225,3 @@ exports.handler = Alexa.SkillBuilders.custom()
      )
     .lambda();
 
-test

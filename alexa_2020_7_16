@@ -1,4 +1,3 @@
-
 const Alexa = require('ask-sdk-core');
 const persistenceAdapter = require('ask-sdk-s3-persistence-adapter');
 const LaunchRequestHandler = {
@@ -33,7 +32,7 @@ const LaunchRequestHandler = {
                 "num_past":0,
                 "count2_past":"回"
             },
-            "背筋":{
+            "はいきん":{
                 "num_past":0,
                 "count2_past":"回"
             },
@@ -334,7 +333,7 @@ const menu_resultIntentHandler = {
         let today1 = today.toString();
 
         // 単位の設定
-       if(menu === "スクワット"||menu === "腹筋"||menu === "腕立て"||menu === "背筋"){
+       if(menu === "スクワット"||menu === "腹筋"||menu === "腕立て"||menu === "はいきん"){
             count2 = count[0];
             }else{
             count2 = count[1];

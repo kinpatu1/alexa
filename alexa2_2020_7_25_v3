@@ -49,7 +49,7 @@ const LaunchRequestHandler = {
         attributesManager.setPersistentAttributes(s3Attributes);
         await attributesManager.savePersistentAttributes();
 
-        const speakOutput = "勉強時間報告か目標管理どちらを開きますか？";
+        const speakOutput = "時間報告か目標管理どちらを開きますか？";
 
         return handlerInput.responseBuilder
             .speak(speakOutput)

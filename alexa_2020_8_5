@@ -260,7 +260,7 @@ const menuIntentHandler = {
         
         // 本文
         const speakOutput = `${i}セット目は${menu}を${s3Attributes[menu].num_past}${s3Attributes[menu].count2_past}以上目指しましょう。
-                            <audio src="https://alexa-training1.s3-ap-northeast-1.amazonaws.com/music/2.wav" />
+                            <audio src="https://alexa-training1.s3-ap-northeast-1.amazonaws.com/music/new3.wav" />
                             終わりましたか？`;
         return handlerInput.responseBuilder
             .speak(speakOutput)
@@ -341,7 +341,7 @@ const menu_resultIntentHandler = {
 
         const speakOutput = `${menu}を${num}${count2}ですね。
                                 休憩したらメニューと言って、${goal_count}セット目をしましょう
-                                <audio src="https://alexa-training1.s3-ap-northeast-1.amazonaws.com/music/2.wav" />`;
+                                <audio src="https://alexa-training1.s3-ap-northeast-1.amazonaws.com/music/new3.wav" />`;
         // セッションの保存
         i = (parseInt(i,10) + 1);
         attributes.i = i;

@@ -1,0 +1,438 @@
+const Alexa = require('ask-sdk-core');
+const persistenceAdapter = require('ask-sdk-s3-persistence-adapter');
+const LaunchRequestHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
+    },
+    
+    async handle(handlerInput) {
+        // メニューの選択
+        var array = ["スクワット","腹筋","腕立て","はいきん","逆立ち","体幹"];
+        var menu = array[Math.floor(Math.random() * array.length)];
+        
+        var today = new Date(); 
+        today = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0); 
+        let today1 = today.toString();
+
+        let format = {
+            "スクワット":{
+                "num_past":0,
+                "count2_past":"回"
+            },
+            "腹筋":{
+                "num_past":0,
+                "count2_past":"回"
+            },
+            "腕立て":{
+                "num_past":0,
+                "count2_past":"回"
+            },
+            "はいきん":{
+                "num_past":0,
+                "count2_past":"回"
+            },
+            "逆立ち":{
+                "num_past":0,
+                "count2_past":"秒"
+            },
+            "体幹":{
+                "num_past":0,
+                "count2_past":"秒"
+            },
+            "ランニング":{
+                "runninng_count":0
+            },
+            "登録日":{
+                "register":`${today1}`
+            },
+            "前回ログイン日":{
+                "day":`${today1}`
+            },
+            "達成数":{
+                "achievement":"0"
+            }
+        };
+        
+        // アトリビュートを読み込むハンドラー
+        const attributesManager = handlerInput.attributesManager;
+        let s3Attributes = await attributesManager.getPersistentAttributes() ;
+        if(s3Attributes[menu] ){
+        }else{
+            s3Attributes = format;
+        }
+
+        // アトリビュートを保存するハンドラー
+        attributesManager.setPersistentAttributes(s3Attributes);
+        await attributesManager.savePersistentAttributes();
+        
+        const speakOutput = "メニュー、ダンス、ランニング、目標管理、どれを開きますか？";
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const launchIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'launchIntent';
+    },
+    async handle(handlerInput) {
+    
+        // 本文
+        const speakOutput = "メニュー、ダンス、ランニング、目標管理、どれを開きますか？";
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const runningIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'runningIntent';
+    },
+    async handle(handlerInput) {
+    
+        // 本文
+        const speakOutput = `ランニングをしました。と言うとカウントします`;
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt("聞こえましたか")
+            .getResponse();
+    }
+};
+const running_resultIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'running_resultIntent';
+    },
+    async handle(handlerInput) {
+        
+        // アトリビュートを読み込むハンドラー
+        const attributesManager = handlerInput.attributesManager;
+        let s3Attributes = await attributesManager.getPersistentAttributes() ;
+        
+        // 達成した日の定義
+        var today = new Date(); 
+        today = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0); 
+        let today1 = today.toString();
+        
+        
+        // 本文
+        const speakOutput = "お疲れ様でした";
+        
+        // アトリビュートを保存するハンドラー
+        s3Attributes["前回ログイン日"]["day"] = today1;
+        let test2 = s3Attributes["ランニング"]["runninng_count"];
+        s3Attributes["ランニング"]["runninng_count"] = (parseInt(test2,10) + 1);
+        let test = s3Attributes["達成数"]["achievement"];
+        let test3 = (parseInt(test,10) + 1);   
+        s3Attributes["達成数"]["achievement"] = test3;
+        attributesManager.setPersistentAttributes(s3Attributes);
+        await attributesManager.savePersistentAttributes();
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const goalIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'goalIntent';
+    },
+    async handle(handlerInput) {
+        
+        // アトリビュートを読み込むハンドラー
+        const attributesManager = handlerInput.attributesManager;
+        let s3Attributes = await attributesManager.getPersistentAttributes() ;
+        
+        /* 今回ログイン日 */
+        var today = new Date(); 
+        today = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0); 
+
+        /* 前回ログイン日 */
+        var dateStart99 = new Date(s3Attributes["登録日"]["register"]);
+        /* いつ振りか表示 */
+        var msecDiff99 = today.getTime() - dateStart99.getTime();
+        var dayDiff99 = Math.floor(msecDiff99 / 1000 / 60 / 60 / 24);
+
+        let a =s3Attributes["達成数"]["achievement"];
+        let penalty =(parseInt(dayDiff99,10) - parseInt(a,10));
+        let penalty2 = "";
+        if (penalty > 0){
+            penalty2 = `筋トレのノルマは${penalty}日分です`;
+        }else{
+            penalty2 = "筋トレのノルマは溜まっていないです";
+        }
+        
+        // ランニングカウント
+        let dayDiff3 = (dayDiff99)*3/7;
+        let dayDiff4 = Math.floor(dayDiff3);
+        let b =s3Attributes["ランニング"]["runninng_count"];
+        let penalty3 = (parseInt(dayDiff4,10) - parseInt(b,10));
+        let penalty4 = "";
+        if (penalty3 > 0){
+            penalty4 = `ランニングのノルマは${penalty3}日分です`;
+        }else{
+            penalty4 = "ランニングのノルマは溜まっていないです";
+        }
+        
+        // s3Attributes["前回ログイン日"]["day"] = today1;
+        
+        // アトリビュートを保存するハンドラー
+        attributesManager.setPersistentAttributes(s3Attributes);
+        await attributesManager.savePersistentAttributes();
+        
+        const speakOutput = `${penalty2}。${penalty4}。`;
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const danceIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'danceIntent';
+    },
+    async handle(handlerInput) {
+
+        // 本文
+        const speakOutput = "ダンスをしました。と言うとカウントします";
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const dance_resultIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'dance_resultIntent';
+    },
+    async handle(handlerInput) {
+            // アトリビュートを読み込むハンドラー
+            const attributesManager = handlerInput.attributesManager;
+            let s3Attributes = await attributesManager.getPersistentAttributes();
+
+            // 達成した日の定義
+            var today = new Date(); 
+            today = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0); 
+            let today1 = today.toString();
+            s3Attributes["前回ログイン日"]["day"] = today1;
+
+            // 達成数をカウント
+            let test = s3Attributes["達成数"]["achievement"];
+            let test3 = (parseInt(test,10) + 1);   
+            s3Attributes["達成数"]["achievement"] = test3;
+            
+            // アトリビュートを保存するハンドラー
+            attributesManager.setPersistentAttributes(s3Attributes);
+            await attributesManager.savePersistentAttributes();
+
+        
+        // 本文
+        const speakOutput = "お疲れ様です。いち日分の筋トレ、ノルマ達成です";
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const menuIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'menuIntent';
+    },
+    async handle(handlerInput) {
+        // セッションの設定
+        const attributes = handlerInput.attributesManager.getSessionAttributes();
+        
+        // アトリビュートを読み込むハンドラー
+        const attributesManager = handlerInput.attributesManager;
+        let s3Attributes = await attributesManager.getPersistentAttributes();
+        
+        // 変数の設定
+        // メニューの選択
+        var array = ["スクワット","腹筋","腕立て","はいきん","逆立ち","体幹"];
+        var menu = array[Math.floor(Math.random() * array.length)];
+        attributes.menu = menu;
+        let i = parseInt(attributes.i,10) -1 || 1;
+        
+        // 本文
+        const speakOutput = `${i}セット目は${menu}を${s3Attributes[menu].num_past}${s3Attributes[menu].count2_past}以上目指しましょう。
+                            <audio src="https://alexa-training1.s3-ap-northeast-1.amazonaws.com/music/new3.wav" />
+                            終わりましたか？`;
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const menu_resultIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'menu_resultIntent';
+    },
+    async handle(handlerInput) {
+        
+        // セッションの設定
+        const attributes = handlerInput.attributesManager.getSessionAttributes();
+
+        // アトリビュートを読み込むハンドラー
+        const attributesManager = handlerInput.attributesManager;
+        let s3Attributes = await attributesManager.getPersistentAttributes();
+
+        
+        // 変数の設定
+        const slots = handlerInput.requestEnvelope.request.intent.slots;
+        let num = slots.num.value ||undefined;
+        let menu = attributes.menu;
+        let count = ["回","秒"];
+        let count2 ="";
+        // S3に保存する平均回数の計算
+        let record = (parseInt(num,10) + parseInt(s3Attributes[menu].num_past,10))/2;
+        let test = s3Attributes["達成数"]["achievement"];
+        let i = attributes.i || 2;
+        let goal_count = i;
+        if(goal_count > 6){
+        let test3 = (parseInt(test,10) + 1);   
+        s3Attributes["達成数"]["achievement"] = test3;
+        }
+
+        // 達成した日の定義
+        var today = new Date(); 
+        today = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0); 
+        let today1 = today.toString();
+
+        // 単位の設定
+       if(menu === "スクワット"||menu === "腹筋"||menu === "腕立て"||menu === "はいきん"){
+            count2 = count[0];
+            }else{
+            count2 = count[1];
+            }
+        
+        // 本文
+        if(num === undefined){
+            const speechOutput = `${menu}を何${count2}しましたか？`;
+            const reprompt = `${menu}を何${count2}しましたか？`;
+            return handlerInput.responseBuilder
+                .speak(speechOutput)
+                .reprompt(reprompt)
+                .getResponse();
+        }
+        if(goal_count > 6){
+            const speechOutput = "お疲れ様です。６セット終わりました";
+            const reprompt = "お疲れ様です。６セット終わりました。";
+            // セッションの保存
+            i = 2;
+            attributes.i = i;
+            handlerInput.attributesManager.setSessionAttributes(attributes);
+            
+            // アトリビュートを保存するハンドラー
+            s3Attributes["前回ログイン日"]["day"] = today1;
+            s3Attributes[menu].num_past = record;
+            attributesManager.setPersistentAttributes(s3Attributes);
+            await attributesManager.savePersistentAttributes();
+            return handlerInput.responseBuilder
+                .speak(speechOutput)
+                .reprompt(reprompt)
+                .getResponse();
+        }
+
+        const speakOutput = `${menu}を${num}${count2}ですね。
+                                休憩したらメニューと言ってください。
+                                <audio src="https://alexa-training1.s3-ap-northeast-1.amazonaws.com/music/new3.wav" />
+                                ${goal_count}セット目をしましょう`;
+        // セッションの保存
+        i = (parseInt(i,10) + 1);
+        attributes.i = i;
+        handlerInput.attributesManager.setSessionAttributes(attributes);
+        
+        // アトリビュートを保存するハンドラー
+        s3Attributes[menu].num_past = record;
+        attributesManager.setPersistentAttributes(s3Attributes);
+        await attributesManager.savePersistentAttributes();
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const HelpIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.HelpIntent';
+    },
+    handle(handlerInput) {
+        const speakOutput = "メニュー、ダンス、ランニング、目標管理、どれを開きますか？";
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const CancelAndStopIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.CancelIntent'
+                || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.StopIntent');
+    },
+    handle(handlerInput) {
+        const speakOutput = "キャンセルしました";
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .getResponse();
+    }
+};
+const IntentReflectorHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest';
+    },
+    handle(handlerInput) {
+        const speakOutput = `もう一度言ってください`;
+
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            //.reprompt('add a reprompt if you want to keep the session open for the user to respond')
+            .getResponse();
+    }
+};
+const ErrorHandler = {
+    canHandle() {
+        return true;
+    },
+    handle(handlerInput, error) {
+        console.log(`~~~~ Error handled: ${error.stack}`);
+        const speakOutput = `もう一度言ってください`;
+
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+exports.handler = Alexa.SkillBuilders.custom()
+    .addRequestHandlers(
+        LaunchRequestHandler,
+        launchIntentHandler,
+        runningIntentHandler,
+        running_resultIntentHandler,
+        danceIntentHandler,
+        dance_resultIntentHandler,
+        goalIntentHandler,
+        menuIntentHandler,
+        menu_resultIntentHandler,
+        HelpIntentHandler,
+        CancelAndStopIntentHandler,
+        IntentReflectorHandler,
+    )
+    .addErrorHandlers(
+        ErrorHandler,
+    )
+     .withPersistenceAdapter(
+         new persistenceAdapter.S3PersistenceAdapter({bucketName:"alexa-training1"})
+     )
+    .lambda();

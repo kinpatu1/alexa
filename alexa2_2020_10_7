@@ -1,0 +1,279 @@
+セッションオープンを追加している
+
+const Alexa = require('ask-sdk-core');
+const persistenceAdapter = require('ask-sdk-s3-persistence-adapter');
+const LaunchRequestHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
+    },
+    async handle(handlerInput) {
+
+        /* 登録日 */
+        // var today = new Date(); 
+        // today = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0); 
+        // let today1 = today.toString();
+
+        let format = {
+            "登録日":{
+                "register":`register":"Sat Jul 20 2020 00:00:00 GMT+0000 (Coordinated Universal Time)`
+            },
+            "達成数":{
+                "achievement":"0"
+            },
+            "ノルマ":{
+                "task":`0`
+            }
+        };
+        
+        // アトリビュートを読み込むハンドラー
+        const attributesManager = handlerInput.attributesManager;
+        let s3Attributes = await attributesManager.getPersistentAttributes() ;
+        
+        // 初回ログイン時のフォーマット作成
+        if(s3Attributes["達成数"] ){
+        }else{
+            s3Attributes = format;
+        }
+
+        // いつぶりのログインか計算
+        /* 今回ログイン日 */
+        var today = new Date(); 
+        today = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0); 
+        /* 登録日 */
+        var dateStart = new Date(s3Attributes["登録日"]["register"]);
+        /* いつ振りか表示 */
+        var msecDiff = today.getTime() - dateStart.getTime();
+        var dayDiff = Math.floor(msecDiff / 1000 / 60 / 60 / 24);
+        let dayDiff2 = (parseInt(dayDiff,10) * 3);
+
+        // アトリビュートを保存するハンドラー
+        s3Attributes["ノルマ"]["task"] = dayDiff2;
+        attributesManager.setPersistentAttributes(s3Attributes);
+        await attributesManager.savePersistentAttributes();
+
+        const speakOutput = "時間報告か目標管理どちらを開きますか？";
+
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const launchIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'launchIntent';
+    },
+    handle(handlerInput) {
+        const speakOutput = "勉強時間報告か目標管理どちらを開きますか？";
+
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const studyIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'studyIntent';
+    },
+    handle(handlerInput) {
+        const speakOutput = "何時間勉強しましたか？";
+
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const study_resultIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'study_resultIntent';
+    },
+    async handle(handlerInput) {
+        
+        // 変数の設定
+        const slots = handlerInput.requestEnvelope.request.intent.slots;
+        let num = slots.num.value;
+        
+        // アトリビュートを読み込むハンドラー
+        const attributesManager = handlerInput.attributesManager;
+        let s3Attributes = await attributesManager.getPersistentAttributes();
+        let num2 = s3Attributes["達成数"]["achievement"];
+        
+        // アトリビュートを保存するハンドラー
+        s3Attributes["達成数"]["achievement"] = (parseInt(num,10)+parseInt(num2,10));
+        attributesManager.setPersistentAttributes(s3Attributes);
+        await attributesManager.savePersistentAttributes();
+        
+        
+        const speakOutput = "お疲れ様でした。";
+
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .shouldEndSession(true)
+            .getResponse();
+    }
+};
+const goalIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'goalIntent';
+    },
+    async handle(handlerInput) {
+        
+        // アトリビュートを読み込むハンドラー
+        const attributesManager = handlerInput.attributesManager;
+        let s3Attributes = await attributesManager.getPersistentAttributes();
+        
+        // ノルマ計算
+        let achievement2 = s3Attributes["達成数"]["achievement"];
+        let task2 = s3Attributes["ノルマ"]["task"];
+        let penalty = (parseInt(task2,10)-parseInt(achievement2,10));
+        
+        if(penalty>0){
+        const speakOutput = `ノルマは${penalty}時間あります。`;
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .shouldEndSession(true)
+            .getResponse();
+        }
+        const speakOutput = "ノルマはないです";
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .shouldEndSession(true)
+            .getResponse();
+    }
+};
+const InitializationIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'InitializationIntent';
+    },
+    async handle(handlerInput) {
+
+        // アトリビュートを読み込むハンドラー
+        const attributesManager = handlerInput.attributesManager;
+        let s3Attributes = await attributesManager.getPersistentAttributes();
+        
+        s3Attributes["ノルマ"]["task"]=0;
+        
+        
+        // アトリビュートを保存するハンドラー
+        attributesManager.setPersistentAttributes(s3Attributes);
+        await attributesManager.savePersistentAttributes();
+
+
+        const speakOutput = "初期化しました";
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const HelpIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.HelpIntent';
+    },
+    handle(handlerInput) {
+        const speakOutput = handlerInput.t('勉強時間管理と言ってください');
+
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const CancelAndStopIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.CancelIntent'
+                || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.StopIntent');
+    },
+    handle(handlerInput) {
+        const speakOutput = handlerInput.t('またね');
+
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .getResponse();
+    }
+};
+const FallbackIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.FallbackIntent';
+    },
+    handle(handlerInput) {
+        const speakOutput = handlerInput.t('FALLBACK_MSG');
+
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const SessionEndedRequestHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'SessionEndedRequest';
+    },
+    handle(handlerInput) {
+        console.log(`~~~~ Session ended: ${JSON.stringify(handlerInput.requestEnvelope)}`);
+        // Any cleanup logic goes here.
+        return handlerInput.responseBuilder.getResponse(); // notice we send an empty response
+    }
+};
+const IntentReflectorHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest';
+    },
+    handle(handlerInput) {
+        const intentName = Alexa.getIntentName(handlerInput.requestEnvelope);
+        const speakOutput = handlerInput.t('REFLECTOR_MSG', {intentName: intentName});
+
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            //.reprompt('add a reprompt if you want to keep the session open for the user to respond')
+            .getResponse();
+    }
+};
+const ErrorHandler = {
+    canHandle() {
+        return true;
+    },
+    handle(handlerInput, error) {
+        const speakOutput = handlerInput.t('ERROR_MSG');
+        console.log(`~~~~ Error handled: ${JSON.stringify(error)}`);
+
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+exports.handler = Alexa.SkillBuilders.custom()
+    .addRequestHandlers(
+        LaunchRequestHandler,
+        launchIntentHandler,
+        studyIntentHandler,
+        study_resultIntentHandler,
+        goalIntentHandler,
+        InitializationIntentHandler,
+        HelpIntentHandler,
+        CancelAndStopIntentHandler,
+        FallbackIntentHandler,
+        SessionEndedRequestHandler,
+        IntentReflectorHandler,
+    )
+    .addErrorHandlers(
+        ErrorHandler,
+    )
+     .withPersistenceAdapter(
+         new persistenceAdapter.S3PersistenceAdapter({bucketName:"alexa-study"})
+     )
+    .lambda();

@@ -9,11 +9,11 @@ const LaunchRequestHandler = {
         // 登録日
         var today = new Date(); 
         today = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0); 
-        let today1 = today.toString();
+        // let today1 = today.toString();
 
         let format = {
             "登録日":{
-                "register":`${today1}`
+                "register":`Sun Aug 09 2020 00:00:00 GMT+0000 (Coordinated Universal Time)`
             },
             "達成数":{
                 "achievement":"0"

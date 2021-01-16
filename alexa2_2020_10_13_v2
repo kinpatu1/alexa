@@ -13,7 +13,7 @@ const LaunchRequestHandler = {
 
         let format = {
             "登録日":{
-                "register":`${today1}`
+                "register":`Sun Aug 09 2020 00:00:00 GMT+0000 (Coordinated Universal Time)`
             },
             "達成数":{
                 "achievement":"0"

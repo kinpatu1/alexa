@@ -1,0 +1,903 @@
+const Alexa = require('ask-sdk-core');
+const persistenceAdapter = require('ask-sdk-s3-persistence-adapter');
+const LaunchRequestHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
+    },
+    
+    async handle(handlerInput) {
+        // メニューの選択
+        var array = ["腹筋","腕立て","はいきん","逆立ち","体幹"];
+        var menu = array[Math.floor(Math.random() * array.length)];
+        
+        var today = new Date(); 
+        today = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0); 
+        let today1 = today.toString();
+
+        let format = {
+            "腹筋":{
+                "num_past":50,
+                "count2_past":"回"
+            },
+            "腕立て":{
+                "num_past":50,
+                "count2_past":"回"
+            },
+            "はいきん":{
+                "num_past":50,
+                "count2_past":"回"
+            },
+            "逆立ち":{
+                "num_past":50,
+                "count2_past":"秒"
+            },
+            "体幹":{
+                "num_past":50,
+                "count2_past":"秒"
+            },
+            "ランニング":{
+                "runninng_count":"0"
+            },
+            "スクワット":{
+                "Squat_count":"0"
+            },
+            "ストレッチ":{
+                "stretch_count":"0"
+            },
+            "登録日":{
+                "register":`${today1}`
+            },
+            "登録日(ストレッチ用)":{
+                "register":`${today1}`
+            },
+            "前回ログイン日":{
+                "day":`${today1}`
+            },
+            "達成数":{
+                "achievement":"0"
+            },
+            "ランニングノルマ":{
+                "runninng_noluma_count":"0"
+            },
+            "スクワットノルマ":{
+                "Squat_noluma_count":"0"
+            },
+            "ストレッチノルマ":{
+                "stretch_noluma_count":"0"
+            },
+            "ダンスノルマ":{
+                "dance_noluma_count":"0"
+            },
+            "メニューノルマ":{
+                "menu_noluma_count":"0"
+            },
+             "ログイン回数":{
+                "login_count":"0"
+            }           
+        };
+        
+        // S3アトリビュートを読み込むハンドラー
+        const attributesManager = handlerInput.attributesManager;
+        let s3Attributes = await attributesManager.getPersistentAttributes() ;
+
+        // フォーマット作成
+        if(s3Attributes["ストレッチ"] ){
+            
+            }if(s3Attributes[menu] ){
+            let renew1 = s3Attributes["腹筋"]["num_past"];
+            let renew2 = s3Attributes["腕立て"]["num_past"];
+            let renew3 = s3Attributes["はいきん"]["num_past"];
+            let renew4 = s3Attributes["逆立ち"]["num_past"];
+            let renew5 = s3Attributes["体幹"]["num_past"];
+            let renew6 = s3Attributes["ランニング"]["runninng_count"];
+            let renew7 = s3Attributes["スクワット"]["Squat_count"];
+            let renew9 = s3Attributes["登録日"]["register"];
+            let renew10 = s3Attributes["前回ログイン日"]["day"];
+            let renew11 = s3Attributes["達成数"]["achievement"];
+            let renew12 = s3Attributes["ランニングノルマ"]["runninng_noluma_count"];
+            let renew13 = s3Attributes["スクワットノルマ"]["Squat_noluma_count"];
+            let renew14 = s3Attributes["ストレッチノルマ"]["stretch_noluma_count"];
+            let renew15 = s3Attributes["ログイン回数"]["login_count"];
+            let renew16 = s3Attributes["ダンスノルマ"]["dance_noluma_count"];
+            let renew17 = s3Attributes["メニューノルマ"]["menu_noluma_count"];
+
+            
+            s3Attributes = format;
+
+
+            s3Attributes["腹筋"]["num_past"] =renew1;
+            s3Attributes["腕立て"]["num_past"] =renew2;
+            s3Attributes["はいきん"]["num_past"] =renew3;
+            s3Attributes["逆立ち"]["num_past"] =renew4;
+            s3Attributes["体幹"]["num_past"] =renew5;
+            s3Attributes["ランニング"]["runninng_count"] =renew6;
+            s3Attributes["スクワット"]["Squat_count"] =renew7;
+            s3Attributes["登録日"]["register"] =renew9;
+            s3Attributes["前回ログイン日"]["day"] =renew10;
+            s3Attributes["達成数"]["achievement"] =renew11;
+            s3Attributes["ランニングノルマ"]["runninng_noluma_count"] =renew12;
+            s3Attributes["スクワットノルマ"]["Squat_noluma_count"] =renew13;
+            s3Attributes["ストレッチノルマ"]["stretch_noluma_count"] =renew14;
+            s3Attributes["ログイン回数"]["login_count"] =renew15;
+            s3Attributes["ダンスノルマ"]["dance_noluma_count"] =renew16;
+            s3Attributes["メニューノルマ"]["menu_noluma_count"] =renew17;
+
+
+
+        }else{
+            s3Attributes = format;
+        }
+
+        // アトリビュートを保存するハンドラー
+        attributesManager.setPersistentAttributes(s3Attributes);
+        await attributesManager.savePersistentAttributes();
+        
+        const speakOutput = "回数報告か、目標管理、どちらにしますか？";
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const launchIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'launchIntent';
+    },
+    async handle(handlerInput) {
+        
+        // S3アトリビュートを読み込むハンドラー
+        const attributesManager = handlerInput.attributesManager;
+        let s3Attributes = await attributesManager.getPersistentAttributes();
+        
+        let login2 = s3Attributes["ログイン回数"]["login_count"];
+        
+        if(login2 < 1){
+        const speakOutput = "メニュー、ダンス、ランニング、スクワット、ストレッチの中で不要なものはありますか？";
+        
+        s3Attributes["ログイン回数"]["login_count"] = (parseInt(login2,10) + 1);
+        attributesManager.setPersistentAttributes(s3Attributes);
+        await attributesManager.savePersistentAttributes();
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+        }
+
+        // 本文
+        const speakOutput = "メニュー、ダンス、ランニング、スクワット、ストレッチ、どれを開きますか？";
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const runningIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'runningIntent';
+    },
+    async handle(handlerInput) {
+    
+        // 本文
+        const speakOutput = `ランニングをしました。と言うとカウントします`;
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const running_resultIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'running_resultIntent';
+    },
+    async handle(handlerInput) {
+        
+        // S3アトリビュートを読み込むハンドラー
+        const attributesManager = handlerInput.attributesManager;
+        let s3Attributes = await attributesManager.getPersistentAttributes();
+        
+        const attributes = handlerInput.attributesManager.getSessionAttributes();
+        
+        // 達成した日の定義
+        var today = new Date(); 
+        today = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0); 
+        let today1 = today.toString();
+        
+        let runninng_noluma_count1 = s3Attributes["ランニングノルマ"]["runninng_noluma_count"];
+        let runninng_noluma_count2 = (parseInt(runninng_noluma_count1,10));
+        
+        // 本文
+        
+        if(runninng_noluma_count2<1){
+        const speakOutput = "ランニングのノルマは週何回にしますか?";
+        attributes.runninng_noluma_count3 = runninng_noluma_count2;
+        handlerInput.attributesManager.setSessionAttributes(attributes);
+        await attributesManager.savePersistentAttributes();
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+        }
+        const speakOutput = "お疲れ様でした";
+        
+        // アトリビュートを保存するハンドラー
+        s3Attributes["前回ログイン日"]["day"] = today1;
+        let test2 = s3Attributes["ランニング"]["runninng_count"];
+        s3Attributes["ランニング"]["runninng_count"] = (parseInt(test2,10) + 1);
+        let test = s3Attributes["達成数"]["achievement"];
+        let test3 = (parseInt(test,10) + 1);   
+        s3Attributes["達成数"]["achievement"] = test3;
+        attributesManager.setPersistentAttributes(s3Attributes);
+        await attributesManager.savePersistentAttributes();
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const SquatIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'SquatIntent';
+    },
+    async handle(handlerInput) {
+    
+        // 本文
+        const speakOutput = `スクワットをしました。と言うとカウントします`;
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const Squat_resultIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'Squat_resultIntent';
+    },
+    async handle(handlerInput) {
+        
+        // アトリビュートを読み込むハンドラー
+        const attributesManager = handlerInput.attributesManager;
+        let s3Attributes = await attributesManager.getPersistentAttributes() ;
+        
+        const attributes = handlerInput.attributesManager.getSessionAttributes();
+
+        
+        // 達成した日の定義
+        var today = new Date(); 
+        today = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0); 
+        let today1 = today.toString();
+        
+        let Squat_noluma_count1 = s3Attributes["スクワットノルマ"]["Squat_noluma_count"];
+        let Squat_noluma_count2 = (parseInt(Squat_noluma_count1,10));
+        
+        if(Squat_noluma_count2<1){
+        const speakOutput = "スクワットのノルマは週何回にしますか?";
+        attributes.Squat_noluma_count3 = Squat_noluma_count2;
+        handlerInput.attributesManager.setSessionAttributes(attributes);
+        await attributesManager.savePersistentAttributes();
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+        }
+        
+        // 本文
+        const speakOutput = "お疲れ様でした";
+        
+        // アトリビュートを保存するハンドラー
+        s3Attributes["前回ログイン日"]["day"] = today1;
+        let test2 = s3Attributes["スクワット"]["Squat_count"];
+        s3Attributes["スクワット"]["Squat_count"] = (parseInt(test2,10) + 1);
+        attributesManager.setPersistentAttributes(s3Attributes);
+        await attributesManager.savePersistentAttributes();
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const goalIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'goalIntent';
+    },
+    async handle(handlerInput) {
+        
+        // アトリビュートを読み込むハンドラー
+        const attributesManager = handlerInput.attributesManager;
+        let s3Attributes = await attributesManager.getPersistentAttributes() ;
+        
+        /* 今回ログイン日 */
+        var today = new Date(); 
+        today = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0); 
+
+        /* 前回ログイン日 */
+        var dateStart99 = new Date(s3Attributes["登録日"]["register"]);
+        /* いつ振りか表示 */
+        var msecDiff99 = today.getTime() - dateStart99.getTime();
+        var dayDiff99 = Math.floor(msecDiff99 / 1000 / 60 / 60 / 24);
+
+        let a =s3Attributes["達成数"]["achievement"];
+        let penalty =(parseInt(dayDiff99,10) - parseInt(a,10));
+        
+        // ランニングカウント
+        let aa =s3Attributes["ランニングノルマ"]["runninng_noluma_count"];
+        let dayDiff3 = (dayDiff99)*aa/7;
+        let dayDiff4 = Math.floor(dayDiff3);
+        let b =s3Attributes["ランニング"]["runninng_count"];
+        let penalty3 = (parseInt(dayDiff4,10) - parseInt(b,10));
+        
+        
+        // スクワットカウント
+        let aaa =s3Attributes["スクワットノルマ"]["Squat_noluma_count"];
+        let dayDiff5 = (dayDiff99)*aaa/7;
+        let dayDiff6 = Math.floor(dayDiff5);
+        let c =s3Attributes["スクワット"]["Squat_count"];
+        let penalty4 = (parseInt(dayDiff6,10) - parseInt(c,10));
+
+        /* 前回ログイン日 */
+        var dateStart999 = new Date(s3Attributes["登録日(ストレッチ用)"]["register"]);
+        /* いつ振りか表示 */
+        var msecDiff999 = today.getTime() - dateStart999.getTime();
+        var dayDiff999 = Math.floor(msecDiff999 / 1000 / 60 / 60 / 24);
+        
+        // ストレッチカウント
+        let aaaa =s3Attributes["ストレッチノルマ"]["stretch_noluma_count"];
+        let dayDiff7 = (dayDiff999)*aaaa/7;
+        let dayDiff8 = Math.floor(dayDiff7);
+        let d =s3Attributes["ストレッチ"]["stretch_count"];
+        let penalty5 = (parseInt(dayDiff8,10) - parseInt(d,10));
+        
+        // アトリビュートを保存するハンドラー
+        attributesManager.setPersistentAttributes(s3Attributes);
+        await attributesManager.savePersistentAttributes();
+        
+        
+        if (penalty > 0 & penalty3 > 0 & penalty4 > 0 & penalty5 > 0){
+        const speakOutput = `筋トレのノルマは${penalty}日分、ランニングのノルマは${penalty3}日分、スクワットのノルマは${penalty4}日分、ストレッチのノルマは${penalty5}日分です`;
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+        }if (penalty > 0 & penalty3 > 0 & penalty4 > 0){
+            const speakOutput = `筋トレのノルマは${penalty}日分、ランニングのノルマは${penalty3}日分、スクワットのノルマは${penalty4}日分です`;
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt(speakOutput)
+                .getResponse();
+            }if (penalty > 0 & penalty3 > 0 & penalty5 > 0){
+                const speakOutput = `筋トレのノルマは${penalty}日分、ランニングのノルマは${penalty3}日分、ストレッチのノルマは${penalty5}日分です`;
+                return handlerInput.responseBuilder
+                    .speak(speakOutput)
+                    .reprompt(speakOutput)
+                    .getResponse();
+                }if (penalty > 0 & penalty4 > 0 & penalty5 > 0){
+                    const speakOutput = `筋トレのノルマは${penalty}日分、スクワットのノルマは${penalty4}日分、ストレッチのノルマは${penalty5}日分です`;
+                    return handlerInput.responseBuilder
+                        .speak(speakOutput)
+                        .reprompt(speakOutput)
+                        .getResponse();
+                    }if (penalty3 > 0 & penalty4 > 0 & penalty5 > 0){
+                        const speakOutput = `ランニングのノルマは${penalty3}日分、スクワットのノルマは${penalty4}日分、ストレッチのノルマは${penalty5}日分です`;
+                        return handlerInput.responseBuilder
+                            .speak(speakOutput)
+                            .reprompt(speakOutput)
+                            .getResponse();
+                        }if (penalty > 0 & penalty3 > 0){
+                            const speakOutput = `筋トレのノルマは${penalty}日分、ランニングのノルマは${penalty3}日分です`;
+                            return handlerInput.responseBuilder
+                                .speak(speakOutput)
+                                .reprompt(speakOutput)
+                                .getResponse();
+                            }if (penalty > 0 & penalty4 > 0){
+                                const speakOutput = `筋トレのノルマは${penalty}日分、スクワットのノルマは${penalty4}日分です`;
+                                return handlerInput.responseBuilder
+                                    .speak(speakOutput)
+                                    .reprompt(speakOutput)
+                                    .getResponse();
+                                }if (penalty > 0 & penalty5 > 0){
+                                    const speakOutput = `筋トレのノルマは${penalty}日分、ストレッチのノルマは${penalty5}日分です`;
+                                    return handlerInput.responseBuilder
+                                        .speak(speakOutput)
+                                        .reprompt(speakOutput)
+                                        .getResponse();
+                                    }if (penalty3 > 0 & penalty4 > 0){
+                                        const speakOutput = `ランニングのノルマは${penalty3}日分、スクワットのノルマは${penalty4}日分です`;
+                                        return handlerInput.responseBuilder
+                                            .speak(speakOutput)
+                                            .reprompt(speakOutput)
+                                            .getResponse();
+                                        }if (penalty3 > 0 & penalty5 > 0){
+                                            const speakOutput = `ランニングのノルマは${penalty3}日分、ストレッチのノルマは${penalty5}日分です`;
+                                            return handlerInput.responseBuilder
+                                                .speak(speakOutput)
+                                                .reprompt(speakOutput)
+                                                .getResponse();
+                                            }if (penalty4 > 0 & penalty5 > 0){
+                                                const speakOutput = `スクワットのノルマは${penalty4}日分、ストレッチのノルマは${penalty5}日分です`;
+                                                return handlerInput.responseBuilder
+                                                    .speak(speakOutput)
+                                                    .reprompt(speakOutput)
+                                                    .getResponse();
+                                                }if(penalty > 0){
+                                                    const speakOutput = `筋トレのノルマは${penalty}日分です`;
+                                                    return handlerInput.responseBuilder
+                                                        .speak(speakOutput)
+                                                        .reprompt(speakOutput)
+                                                        .getResponse();
+                                                    }if (penalty3 > 0) {
+                                                        const speakOutput = `ランニングのノルマは${penalty3}日分です`;
+                                                        return handlerInput.responseBuilder
+                                                            .speak(speakOutput)
+                                                            .reprompt(speakOutput)
+                                                            .getResponse();
+                                                        }if (penalty4 > 0) {
+                                                            const speakOutput = `スクワットのノルマは${penalty4}日分です`;
+                                                            return handlerInput.responseBuilder
+                                                                .speak(speakOutput)
+                                                                .reprompt(speakOutput)
+                                                                .getResponse();
+                                                            }if (penalty5 > 0) {
+                                                                const speakOutput = `ストレッチのノルマは${penalty5}日分です`;
+                                                                return handlerInput.responseBuilder
+                                                                    .speak(speakOutput)
+                                                                    .reprompt(speakOutput)
+                                                                    .getResponse();
+                                                                }
+                                                                const speakOutput = `ノルマはないです`;
+                                                                return handlerInput.responseBuilder
+                                                                    .speak(speakOutput)
+                                                                    .reprompt(speakOutput)
+                                                                    .getResponse();
+    }
+};
+
+
+const danceIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'danceIntent';
+    },
+    async handle(handlerInput) {
+
+        // 本文
+        const speakOutput = "ダンスをしました。と言うとカウントします";
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const dance_resultIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'dance_resultIntent';
+    },
+    async handle(handlerInput) {
+            // アトリビュートを読み込むハンドラー
+            const attributesManager = handlerInput.attributesManager;
+            let s3Attributes = await attributesManager.getPersistentAttributes();
+
+        const attributes = handlerInput.attributesManager.getSessionAttributes();
+
+
+            // 達成した日の定義
+            var today = new Date(); 
+            today = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0); 
+            let today1 = today.toString();
+            s3Attributes["前回ログイン日"]["day"] = today1;
+
+            // 達成数をカウント
+            let test = s3Attributes["達成数"]["achievement"];
+            let test3 = (parseInt(test,10) + 1);   
+            s3Attributes["達成数"]["achievement"] = test3;
+            
+            // アトリビュートを保存するハンドラー
+            attributesManager.setPersistentAttributes(s3Attributes);
+            await attributesManager.savePersistentAttributes();
+        
+        let dance_noluma_count1 = s3Attributes["ダンスノルマ"]["dance_noluma_count"];
+        let dance_noluma_count2 = (parseInt(dance_noluma_count1,10));
+        
+        if(dance_noluma_count2 < 1){
+        const speakOutput = "ダンスを一回すると何日分のノルマを消化しますか？";
+        attributes.dance_noluma_count3 = dance_noluma_count2;
+        handlerInput.attributesManager.setSessionAttributes(attributes);
+        await attributesManager.savePersistentAttributes();
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+        }
+        
+        // 本文
+        const speakOutput = "お疲れ様でした";
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+
+    }
+};
+const menuIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'menuIntent';
+    },
+    async handle(handlerInput) {
+        // セッションの設定
+        const attributes = handlerInput.attributesManager.getSessionAttributes();
+        
+        // アトリビュートを読み込むハンドラー
+        const attributesManager = handlerInput.attributesManager;
+        let s3Attributes = await attributesManager.getPersistentAttributes();
+        
+        // 変数の設定
+        // メニューの選択
+        var array = ["腹筋","腕立て","はいきん","逆立ち","体幹"];
+        var menu = array[Math.floor(Math.random() * array.length)];
+        attributes.menu = menu;
+        let i = parseInt(attributes.i,10) -1 || 1;
+        
+        let menu_noluma_count1 = s3Attributes["メニューノルマ"]["menu_noluma_count"];
+        let menu_noluma_count2 = (parseInt(menu_noluma_count1,10));
+        
+        if(menu_noluma_count2 < 1){
+        const speakOutput = "一回の筋トレノルマは何セットにしますか？";
+        attributes.menu_noluma_count3 = menu_noluma_count2;
+        handlerInput.attributesManager.setSessionAttributes(attributes);
+        await attributesManager.savePersistentAttributes();
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+        }
+        
+        // 本文
+        const speakOutput = `${i}セット目は${menu}を${s3Attributes[menu].num_past}${s3Attributes[menu].count2_past}以上目指しましょう。
+                            <audio src="https://alexa-training1.s3-ap-northeast-1.amazonaws.com/music/new3.wav" />
+                            終わったと言ってください`;
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const menu_resultIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'menu_resultIntent';
+    },
+    async handle(handlerInput) {
+        
+        // セッションの設定
+        const attributes = handlerInput.attributesManager.getSessionAttributes();
+
+        // アトリビュートを読み込むハンドラー
+        const attributesManager = handlerInput.attributesManager;
+        let s3Attributes = await attributesManager.getPersistentAttributes();
+        
+        // 変数の定義
+        const slots = handlerInput.requestEnvelope.request.intent.slots;
+        let num = slots.num.value ||undefined;
+        
+        let runninng_noluma_count4 = attributes.runninng_noluma_count3;
+        let runninng_noluma_count5 = (parseInt(runninng_noluma_count4,10));
+        
+        let Squat_noluma_count4 = attributes.Squat_noluma_count3;
+        let Squat_noluma_count5 = (parseInt(Squat_noluma_count4,10));
+        
+        let stretch_noluma_count4 = attributes.stretch_noluma_count3;
+        let stretch_noluma_count5 = (parseInt(stretch_noluma_count4,10));
+        
+        let dance_noluma_count4 = attributes.dance_noluma_count3;
+        let dance_noluma_count5 = (parseInt(dance_noluma_count4,10));
+        
+        let menu_noluma_count4 = attributes.menu_noluma_count3;
+        let menu_noluma_count5 = (parseInt(menu_noluma_count4,10));
+        
+        if(menu_noluma_count5 < 1){
+            
+            let num7 = (parseInt(num,10));
+
+            s3Attributes["メニューノルマ"]["menu_noluma_count"] = num7;
+            attributesManager.setPersistentAttributes(s3Attributes);
+            await attributesManager.savePersistentAttributes();
+            
+            const speakOutput = `一回の筋トレノルマは${num}回にします。ただしく設定できなかったら。一度終了。と言って初期化と言ってください`;
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt(speakOutput)
+                .withShouldEndSession(true)
+                .getResponse();
+            
+        }
+        
+        if(dance_noluma_count5 < 1){
+            
+            let num6 = (parseInt(num,10));
+
+            s3Attributes["ダンスノルマ"]["dance_noluma_count"] = num6;
+            attributesManager.setPersistentAttributes(s3Attributes);
+            await attributesManager.savePersistentAttributes();
+            
+            const speakOutput = `ダンスを一回すると${num}日分のノルマが消化されます。ただしく設定できなかったら。一度終了。と言って初期化と言ってください`;
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt(speakOutput)
+                .withShouldEndSession(true)
+                .getResponse();
+        }
+        
+        if(stretch_noluma_count5 < 1){
+            
+            let num5 = (parseInt(num,10));
+
+            s3Attributes["ストレッチノルマ"]["stretch_noluma_count"] = num5;
+            attributesManager.setPersistentAttributes(s3Attributes);
+            await attributesManager.savePersistentAttributes();
+            
+            const speakOutput = `ストレッチを毎週${num}回頑張りましょう。ただしく設定できなかったら。一度終了。と言って初期化と言ってください`;
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt(speakOutput)
+                .withShouldEndSession(true)
+                .getResponse();
+            
+        }
+        
+        if(Squat_noluma_count5 < 1){
+            
+            let num4 = (parseInt(num,10));
+
+            s3Attributes["スクワットノルマ"]["Squat_noluma_count"] = num4;
+            attributesManager.setPersistentAttributes(s3Attributes);
+            await attributesManager.savePersistentAttributes();
+            
+            const speakOutput = `スクワットを毎週${num}回頑張りましょう。ただしく設定できなかったら。一度終了。と言って初期化と言ってください`;
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt(speakOutput)
+                .withShouldEndSession(true)
+                .getResponse();
+            
+        }
+        
+        if(runninng_noluma_count5 < 1){
+            
+            let num3 = (parseInt(num,10));
+
+            s3Attributes["ランニングノルマ"]["runninng_noluma_count"] = num3;
+            attributesManager.setPersistentAttributes(s3Attributes);
+            await attributesManager.savePersistentAttributes();
+            
+            const speakOutput = `ランニングを毎週${num}回頑張りましょう。ただしく設定できなかったら。一度終了。と言って初期化と言ってください`;
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt(speakOutput)
+                .withShouldEndSession(true)
+                .getResponse();
+
+        }
+        
+        // 変数の設定
+        let menu = attributes.menu;
+        let count = ["回","秒"];
+        let count2 ="";
+        // S3に保存する平均回数の計算
+        let record = (parseInt(num,10) + parseInt(s3Attributes[menu].num_past,10))/2;
+        let test = s3Attributes["達成数"]["achievement"];
+        let i = attributes.i || 2;
+        let goal_count = i;
+        if(goal_count > 6){
+        let test3 = (parseInt(test,10) + 1);   
+        s3Attributes["達成数"]["achievement"] = test3;
+        }
+
+        // 達成した日の定義
+        var today = new Date(); 
+        today = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0); 
+        let today1 = today.toString();
+
+        // 単位の設定
+       if(menu === "スクワット"||menu === "腹筋"||menu === "腕立て"||menu === "はいきん"){
+            count2 = count[0];
+            }else{
+            count2 = count[1];
+            }
+    
+        // 本文
+        if(num === undefined){
+            const speechOutput = `${menu}を何${count2}しましたか？`;
+            const reprompt = `${menu}を何${count2}しましたか？`;
+            return handlerInput.responseBuilder
+                .speak(speechOutput)
+                .reprompt(reprompt)
+                .getResponse();
+        }
+        if(goal_count > 6){
+            const speechOutput = "お疲れ様です。${menu_noluma_count5}セット終わりました";
+            const reprompt = "お疲れ様です。${menu_noluma_count5}セット終わりました。";
+            // セッションの保存
+            i = 2;
+            attributes.i = i;
+            handlerInput.attributesManager.setSessionAttributes(attributes);
+            
+            // アトリビュートを保存するハンドラー
+            s3Attributes["前回ログイン日"]["day"] = today1;
+            s3Attributes[menu].num_past = record;
+            attributesManager.setPersistentAttributes(s3Attributes);
+            await attributesManager.savePersistentAttributes();
+            return handlerInput.responseBuilder
+                .speak(speechOutput)
+                .reprompt(reprompt)
+                .getResponse();
+        }
+
+        const speakOutput = `${menu}を${num}${count2}ですね。
+                                休憩したらメニューと言ってください。
+                                <audio src="https://alexa-training1.s3-ap-northeast-1.amazonaws.com/music/new3.wav" />
+                                ${goal_count}セット目をしましょう`;
+        // セッションの保存
+        i = (parseInt(i,10) + 1);
+        attributes.i = i;
+        handlerInput.attributesManager.setSessionAttributes(attributes);
+        
+        // アトリビュートを保存するハンドラー
+        s3Attributes[menu].num_past = record;
+        attributesManager.setPersistentAttributes(s3Attributes);
+        await attributesManager.savePersistentAttributes();
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const stretchIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'stretchIntent';
+    },
+    async handle(handlerInput) {
+
+        // 本文
+        const speakOutput = "ストレッチをしました。と言うとカウントします";
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const stretch_resultIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'stretch_resultIntent';
+    },
+    async handle(handlerInput) {
+        
+        // アトリビュートを読み込むハンドラー
+        const attributesManager = handlerInput.attributesManager;
+        let s3Attributes = await attributesManager.getPersistentAttributes() ;
+        
+        const attributes = handlerInput.attributesManager.getSessionAttributes();
+
+        
+        // 達成した日の定義
+        var today = new Date(); 
+        today = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0); 
+        let today1 = today.toString();
+        
+        let stretch_noluma_count1 = s3Attributes["ストレッチノルマ"]["stretch_noluma_count"];
+        let stretch_noluma_count2 = (parseInt(stretch_noluma_count1,10));
+        
+        if(stretch_noluma_count2<1){
+        const speakOutput = "ストレッチのノルマは週何回にしますか?";
+        attributes.stretch_noluma_count3 = stretch_noluma_count2;
+        handlerInput.attributesManager.setSessionAttributes(attributes);
+        await attributesManager.savePersistentAttributes();
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+        }
+        
+        
+        // 本文
+        const speakOutput = "お疲れ様でした";
+        
+        // アトリビュートを保存するハンドラー
+        s3Attributes["前回ログイン日"]["day"] = today1;
+        let test2 = s3Attributes["ストレッチ"]["stretch_count"];
+        s3Attributes["ストレッチ"]["stretch_count"] = (parseInt(test2,10) + 1);
+        attributesManager.setPersistentAttributes(s3Attributes);
+        await attributesManager.savePersistentAttributes();
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const HelpIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.HelpIntent';
+    },
+    handle(handlerInput) {
+        const speakOutput = "回数報告か、目標管理、どちらにしますか？";
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const CancelAndStopIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.CancelIntent'
+                || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.StopIntent');
+    },
+    handle(handlerInput) {
+        const speakOutput = "キャンセルしました";
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .withShouldEndSession(true)
+            .getResponse();
+    }
+};
+const IntentReflectorHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest';
+    },
+    handle(handlerInput) {
+        const speakOutput = `もう一度言ってください`;
+
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            //.reprompt('add a reprompt if you want to keep the session open for the user to respond')
+            .getResponse();
+    }
+};
+const ErrorHandler = {
+    canHandle() {
+        return true;
+    },
+    handle(handlerInput, error) {
+        console.log(`~~~~ Error handled: ${error.stack}`);
+        const speakOutput = `もう一度言ってください`;
+
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+exports.handler = Alexa.SkillBuilders.custom()
+    .addRequestHandlers(
+        LaunchRequestHandler,
+        launchIntentHandler,
+        runningIntentHandler,
+        running_resultIntentHandler,
+        SquatIntentHandler,
+        Squat_resultIntentHandler,
+        danceIntentHandler,
+        dance_resultIntentHandler,
+        goalIntentHandler,
+        menuIntentHandler,
+        menu_resultIntentHandler,
+        stretchIntentHandler,
+        stretch_resultIntentHandler,
+        HelpIntentHandler,
+        CancelAndStopIntentHandler,
+        IntentReflectorHandler,
+    )
+    .addErrorHandlers(
+        ErrorHandler,
+    )
+     .withPersistenceAdapter(
+         new persistenceAdapter.S3PersistenceAdapter({bucketName:"alexa-training1"})
+     )
+    .lambda();
